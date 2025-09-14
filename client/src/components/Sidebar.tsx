@@ -1,14 +1,7 @@
 import { useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
-
-interface User {
-  firstName?: string;
-  lastName?: string;
-}
 
 export default function Sidebar() {
   const [location] = useLocation();
-  const { user } = useAuth() as { user: User };
 
   const navigation = [
     {
@@ -36,10 +29,6 @@ export default function Sidebar() {
       current: false
     }
   ];
-
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
-  };
 
   return (
     <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
@@ -75,26 +64,18 @@ export default function Sidebar() {
           <div className="flex items-center space-x-3 mb-3">
             <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
               <span className="text-sm font-medium">
-                {user?.firstName?.[0]}{user?.lastName?.[0]}
+                DU
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">
-                {user?.firstName} {user?.lastName}
+                Demo User
               </p>
               <p className="text-xs text-muted-foreground truncate">
                 Candidate
               </p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors text-left"
-            data-testid="button-logout"
-          >
-            <i className="fas fa-sign-out-alt mr-2"></i>
-            Logout
-          </button>
         </div>
       </div>
     </div>
