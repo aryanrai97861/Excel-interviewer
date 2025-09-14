@@ -66,7 +66,7 @@ export class InterviewService {
     const sessionData: InsertInterviewSession = {
       userId,
       status: 'in_progress',
-      currentQuestionIndex: 0,
+      currentQuestionIndex: -1, // Start at -1 to indicate we haven't started asking questions yet
       totalQuestions: this.QUESTION_TEMPLATES.length,
     };
 
@@ -112,6 +112,30 @@ Let's begin with our first question. Are you ready to start?`,
 
     await storage.addChatMessage(messageData);
 
+    // Handle initial welcome response
+    if (session.currentQuestionIndex === -1) {
+      // User is responding to "Are you ready to start?"
+      // Move to first question
+      const firstQuestion = this.QUESTION_TEMPLATES[0];
+      const aiResponse = `Great! Let's begin with our first question:\n\n${firstQuestion.question}`;
+      
+      // Update session to move to first question
+      const updatedSession = await storage.updateInterviewSession(sessionId, {
+        currentQuestionIndex: 0,
+      });
+
+      // Add AI response with first question
+      await storage.addChatMessage({
+        sessionId,
+        sender: 'ai',
+        content: aiResponse,
+        messageType: 'text',
+      });
+
+      const messages = await storage.getSessionMessages(sessionId);
+      return { session: updatedSession, messages };
+    }
+
     // Get current question
     const currentQuestion = this.QUESTION_TEMPLATES[session.currentQuestionIndex];
     
@@ -147,7 +171,7 @@ Let's begin with our first question. Are you ready to start?`,
         question: currentQuestion.question,
         expectedAnswer: currentQuestion.expectedAnswer,
         userAnswer: userMessage,
-        score: evaluation.score,
+        score: evaluation.score.toString(),
         aiEvaluation: evaluation,
         isCompleted: true,
       });
@@ -174,7 +198,7 @@ Let's begin with our first question. Are you ready to start?`,
         category: currentQuestion.category,
         question: currentQuestion.question,
         userAnswer: userMessage,
-        score: evaluation.score,
+        score: evaluation.score.toString(),
         aiEvaluation: evaluation,
         isCompleted: true,
       });
@@ -189,7 +213,7 @@ Let's begin with our first question. Are you ready to start?`,
         category: currentQuestion.category,
         question: currentQuestion.question,
         userAnswer: userMessage,
-        score: 80, // Default behavioral score
+        score: "80", // Default behavioral score
         isCompleted: true,
       });
 
@@ -286,7 +310,7 @@ Let's begin with our first question. Are you ready to start?`,
       userAnswer: userExplanation,
       fileUploaded: true,
       filePath,
-      score: overallScore,
+      score: overallScore.toString(),
       aiEvaluation: {
         formulaAccuracy: evaluation.formulaAccuracy,
         structureScore: evaluation.structureScore,
@@ -300,9 +324,9 @@ Let's begin with our first question. Are you ready to start?`,
     await storage.addExcelEvaluation({
       questionId: await this.getLatestQuestionId(sessionId),
       filePath,
-      formulaAccuracy: evaluation.formulaAccuracy,
-      structureScore: evaluation.structureScore,
-      bestPracticesScore: evaluation.bestPracticesScore,
+      formulaAccuracy: evaluation.formulaAccuracy.toString(),
+      structureScore: evaluation.structureScore.toString(),
+      bestPracticesScore: evaluation.bestPracticesScore.toString(),
       evaluationDetails: evaluation.details,
     });
 
@@ -368,11 +392,11 @@ Let's begin with our first question. Are you ready to start?`,
     await storage.updateInterviewSession(sessionId, {
       status: 'completed',
       completedAt: new Date(),
-      overallScore,
-      practicalScore,
-      conceptualScore,
-      explanationScore,
-      behavioralScore,
+      overallScore: overallScore.toString(),
+      practicalScore: practicalScore.toString(),
+      conceptualScore: conceptualScore.toString(),
+      explanationScore: explanationScore.toString(),
+      behavioralScore: behavioralScore.toString(),
       strengths: report.strengths,
       improvements: report.improvements,
       recommendations: report.recommendations,
