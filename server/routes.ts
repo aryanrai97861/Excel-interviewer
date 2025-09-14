@@ -4,6 +4,8 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
+import { db } from "./db";
+import { users } from "@shared/schema";
 import { InterviewService } from "./services/interviewService";
 import { ExcelProcessor } from "./services/excelProcessor";
 
@@ -33,9 +35,49 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Ensure demo user exists
+  const ensureDemoUser = async () => {
+    try {
+      let user = await storage.getUser('demo-user');
+      if (!user) {
+        // Insert demo user directly into database
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            id: 'demo-user',
+            email: 'demo@example.com',
+            firstName: 'Demo',
+            lastName: 'User',
+          })
+          .onConflictDoNothing()
+          .returning();
+        console.log('Demo user created:', newUser);
+        return newUser;
+      }
+      return user;
+    } catch (error) {
+      console.error('Error ensuring demo user exists:', error);
+      throw error;
+    }
+  };
+
+  // History route must come before :sessionId route to avoid conflicts
+  app.get('/api/interviews/history', async (req: any, res) => {
+    try {
+      await ensureDemoUser();
+      // For demo purposes, return all sessions since auth is removed
+      const sessions = await storage.getUserInterviewSessions('demo-user');
+      res.json(sessions);
+    } catch (error) {
+      console.error("Error fetching interview history:", error);
+      res.status(500).json({ message: "Failed to fetch interview history" });
+    }
+  });
+
   // Interview routes
   app.post('/api/interviews/start', async (req: any, res) => {
     try {
+      await ensureDemoUser();
       // For demo purposes, use a default user ID since auth is removed
       const userId = 'demo-user';
       const session = await InterviewService.startInterview(userId);
@@ -130,17 +172,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating template:", error);
       res.status(500).json({ message: "Failed to generate template" });
-    }
-  });
-
-  app.get('/api/interviews/history', async (req: any, res) => {
-    try {
-      // For demo purposes, return all sessions since auth is removed
-      const sessions = await storage.getUserInterviewSessions('demo-user');
-      res.json(sessions);
-    } catch (error) {
-      console.error("Error fetching interview history:", error);
-      res.status(500).json({ message: "Failed to fetch interview history" });
     }
   });
 
