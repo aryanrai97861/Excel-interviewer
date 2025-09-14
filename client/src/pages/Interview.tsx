@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import Sidebar from "@/components/Sidebar";
 import ChatInterface from "@/components/ChatInterface";
@@ -14,26 +12,10 @@ import type { SessionDetails } from "@/types/interview";
 export default function Interview() {
   const [, navigate] = useLocation();
   const [match, params] = useRoute("/interview/:sessionId");
-  const { isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [sessionId, setSessionId] = useState<string | null>(params?.sessionId || null);
   const [showResults, setShowResults] = useState(false);
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
-    }
-  }, [isAuthenticated, isLoading, toast]);
 
   // Start new interview mutation
   const startInterviewMutation = useMutation({
@@ -47,17 +29,6 @@ export default function Interview() {
       queryClient.invalidateQueries({ queryKey: ["/api/interviews", data.id] });
     },
     onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
       toast({
         title: "Error",
         description: "Failed to start interview. Please try again.",
@@ -83,17 +54,6 @@ export default function Interview() {
       queryClient.invalidateQueries({ queryKey: ["/api/interviews", sessionId] });
     },
     onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
       toast({
         title: "Error",
         description: "Failed to send message. Please try again.",
@@ -131,17 +91,6 @@ export default function Interview() {
       });
     },
     onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
       toast({
         title: "Error",
         description: "Failed to upload file. Please try again.",
@@ -204,7 +153,7 @@ export default function Interview() {
     }
   }, [sessionData?.session?.status, showResults]);
 
-  if (isLoading || (!sessionId && !startInterviewMutation.isPending)) {
+  if (!sessionId && !startInterviewMutation.isPending) {
     return (
       <div className="flex h-screen overflow-hidden">
         <Sidebar />

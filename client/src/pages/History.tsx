@@ -1,8 +1,5 @@
-import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,32 +7,11 @@ import Sidebar from "@/components/Sidebar";
 import type { InterviewSession } from "@/types/interview";
 
 export default function History() {
-  const { isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
-    }
-  }, [isAuthenticated, isLoading, toast]);
 
   const { data: sessions, isLoading: sessionsLoading, error } = useQuery<InterviewSession[]>({
     queryKey: ["/api/interviews/history"],
-    enabled: isAuthenticated,
   });
-
-  if (error && isUnauthorizedError(error)) {
-    return null; // Will redirect above
-  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {

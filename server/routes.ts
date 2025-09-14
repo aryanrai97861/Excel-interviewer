@@ -3,7 +3,6 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import { storage } from "./storage";
 import { InterviewService } from "./services/interviewService";
 import { ExcelProcessor } from "./services/excelProcessor";
@@ -34,25 +33,11 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
-
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-
   // Interview routes
-  app.post('/api/interviews/start', isAuthenticated, async (req: any, res) => {
+  app.post('/api/interviews/start', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // For demo purposes, use a default user ID since auth is removed
+      const userId = 'demo-user';
       const session = await InterviewService.startInterview(userId);
       res.json(session);
     } catch (error) {
@@ -61,13 +46,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/interviews/:sessionId', isAuthenticated, async (req: any, res) => {
+  app.get('/api/interviews/:sessionId', async (req: any, res) => {
     try {
       const { sessionId } = req.params;
-      const userId = req.user.claims.sub;
       
       const session = await storage.getInterviewSession(sessionId);
-      if (!session || session.userId !== userId) {
+      if (!session) {
         return res.status(404).json({ message: "Interview session not found" });
       }
 
@@ -79,14 +63,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/interviews/:sessionId/message', isAuthenticated, async (req: any, res) => {
+  app.post('/api/interviews/:sessionId/message', async (req: any, res) => {
     try {
       const { sessionId } = req.params;
       const { message } = req.body;
-      const userId = req.user.claims.sub;
 
       const session = await storage.getInterviewSession(sessionId);
-      if (!session || session.userId !== userId) {
+      if (!session) {
         return res.status(404).json({ message: "Interview session not found" });
       }
 
@@ -98,18 +81,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/interviews/:sessionId/upload', isAuthenticated, upload.single('excel'), async (req: any, res) => {
+  app.post('/api/interviews/:sessionId/upload', upload.single('excel'), async (req: any, res) => {
     try {
       const { sessionId } = req.params;
       const { message = '' } = req.body;
-      const userId = req.user.claims.sub;
 
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
       const session = await storage.getInterviewSession(sessionId);
-      if (!session || session.userId !== userId) {
+      if (!session) {
         return res.status(404).json({ message: "Interview session not found" });
       }
 
@@ -126,13 +108,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/interviews/:sessionId/template/:templateType', isAuthenticated, async (req: any, res) => {
+  app.get('/api/interviews/:sessionId/template/:templateType', async (req: any, res) => {
     try {
       const { sessionId, templateType } = req.params;
-      const userId = req.user.claims.sub;
 
       const session = await storage.getInterviewSession(sessionId);
-      if (!session || session.userId !== userId) {
+      if (!session) {
         return res.status(404).json({ message: "Interview session not found" });
       }
 
@@ -152,10 +133,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/interviews/history', isAuthenticated, async (req: any, res) => {
+  app.get('/api/interviews/history', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const sessions = await storage.getUserInterviewSessions(userId);
+      // For demo purposes, return all sessions since auth is removed
+      const sessions = await storage.getUserInterviewSessions('demo-user');
       res.json(sessions);
     } catch (error) {
       console.error("Error fetching interview history:", error);
